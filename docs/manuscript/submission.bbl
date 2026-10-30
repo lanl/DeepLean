@@ -1,0 +1,112 @@
+\begin{thebibliography}{19}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Alexandr et~al.(2026)Alexandr, Duan, and Mont{\'u}far]{alexandr2026}
+Yulia Alexandr, Hao Duan, and Guido Mont{\'u}far.
+\newblock Algebraic invariants of lightning self-attention, 2026.
+\newblock arXiv:2604.15632.
+
+\bibitem[Bhattamishra et~al.(2026)Bhattamishra, Shah, Hahn, and Kanade]{bhattamishra2026}
+Satwik Bhattamishra, Kulin Shah, Michael Hahn, and Varun Kanade.
+\newblock Provably learning attention with queries.
+\newblock In \emph{International Conference on Machine Learning}, volume 306 of \emph{Proceedings of Machine Learning Research}, 2026.
+\newblock arXiv:2601.16873.
+
+\bibitem[Brunner et~al.(2020)Brunner, Liu, Pascual, Richter, Ciaramita, and Wattenhofer]{brunner2020}
+Gino Brunner, Yang Liu, Dami{\'a}n Pascual, Oliver Richter, Massimiliano Ciaramita, and Roger Wattenhofer.
+\newblock On identifiability in transformers.
+\newblock In \emph{International Conference on Learning Representations}, 2020.
+
+\bibitem[Fefferman(1994)]{fefferman1994}
+Charles Fefferman.
+\newblock Reconstructing a neural net from its output.
+\newblock \emph{Revista Matem{\'a}tica Iberoamericana}, 10\penalty0 (3):\penalty0 507-555, 1994.
+
+\bibitem[Grigsby and Lindsey(2024)]{grigsby2024persistent}
+J.~Elisenda Grigsby and Kathryn Lindsey.
+\newblock On functional dimension and persistent pseudodimension, 2024.
+\newblock arXiv:2410.17191.
+
+\bibitem[Grigsby et~al.(2023)Grigsby, Lindsey, and Rolnick]{grigsby2023}
+J.~Elisenda Grigsby, Kathryn Lindsey, and David Rolnick.
+\newblock Hidden symmetries of {ReLU} networks.
+\newblock In \emph{Proceedings of the 40th International Conference on Machine Learning}, volume 202 of \emph{Proceedings of Machine Learning Research}, pages 11734-11760, 2023.
+
+\bibitem[Grigsby et~al.(2025)Grigsby, Lindsey, Meyerhoff, and Wu]{grigsby2026functionaldimension}
+J.~Elisenda Grigsby, Kathryn Lindsey, Robert Meyerhoff, and Chenxi Wu.
+\newblock Functional dimension of feedforward {ReLU} neural networks.
+\newblock \emph{Advances in Mathematics}, 482:\penalty0 110636, 2025.
+\newblock \doi{10.1016/j.aim.2025.110636}.
+\newblock arXiv:2209.04036.
+
+\bibitem[Henry(2026)]{henry2026multihead}
+Nathan~W. Henry.
+\newblock Generic fibers and functional dimension of multi-head attention.
+\newblock In \emph{ICML Workshop on Weight-Space Symmetries}, 2026.
+\newblock OpenReview:7vPmnHdAPl.
+
+\bibitem[Henry et~al.(2025)Henry, Marchetti, and Kohn]{henry2025}
+Nathan~W. Henry, Giovanni~Luca Marchetti, and Kathl{\'e}n Kohn.
+\newblock Geometry of lightning self-attention: Identifiability and dimension.
+\newblock In \emph{International Conference on Learning Representations}, 2025.
+\newblock arXiv:2408.17221v3.
+
+\bibitem[Kim and Kim(2026)]{kim2026queries}
+Sunyeop Kim and Insung Kim.
+\newblock Provably learning multi-head attention with queries, 2026.
+\newblock arXiv:2608.03294.
+
+\bibitem[{Leiden Declaration Working Group}(2026)]{leiden2026}
+{Leiden Declaration Working Group}.
+\newblock Leiden declaration on artificial intelligence and mathematics, 2026.
+\newblock June 2026.
+
+\bibitem[Phuong and Lampert(2020)]{phuong2020}
+Mary Phuong and Christoph~H. Lampert.
+\newblock Functional vs. parametric equivalence of {ReLU} networks.
+\newblock In \emph{International Conference on Learning Representations}, 2020.
+\newblock URL \url{https://openreview.net/forum?id=Bylx-TNKvH}.
+
+\bibitem[Stock and Gribonval(2023)]{stock2023}
+Pierre Stock and R{\'e}mi Gribonval.
+\newblock An embedding of {ReLU} networks and an analysis of their identifiability.
+\newblock \emph{Constructive Approximation}, 57:\penalty0 853-899, 2023.
+
+\bibitem[Sussmann(1992)]{sussmann1992}
+H{\'e}ctor~J. Sussmann.
+\newblock Uniqueness of the weights for minimal feedforward nets with a given input-output map.
+\newblock \emph{Neural Networks}, 5\penalty0 (4):\penalty0 589-593, 1992.
+
+\bibitem[Tao(2026)]{tao2026ai}
+Terence Tao.
+\newblock Mathematics in the age of ai.
+\newblock 2026.
+\newblock arXiv:2608.16753.
+
+\bibitem[Tran et~al.(2025)Tran, Vo, The, Huu, Nguyen-Nhat, Tran, Pham, and Nguyen]{tran2025nfn}
+Viet-Hoang Tran, Thieu~N. Vo, An~Nguyen The, Tho~Tran Huu, Minh-Khoi Nguyen-Nhat, Thanh Tran, Duy-Tung Pham, and Tan~Minh Nguyen.
+\newblock Equivariant neural functional networks for transformers.
+\newblock In \emph{International Conference on Learning Representations}, 2025.
+\newblock URL \url{https://openreview.net/forum?id=uBai0ukstY}.
+
+\bibitem[Tran et~al.(2026)Tran, Bui, Trinh, Ngoc, and Nguyen]{tran2026attention}
+Viet-Hoang Tran, Vinh~Khanh Bui, Van-Hoan Trinh, Tan~Lai Ngoc, and Tan~M. Nguyen.
+\newblock Functional equivalence in attention: A comprehensive study with applications to linear mode connectivity.
+\newblock In \emph{International Conference on Machine Learning}, volume 306 of \emph{Proceedings of Machine Learning Research}, 2026.
+\newblock URL \url{https://openreview.net/forum?id=bG4ZzflPCt}.
+
+\bibitem[Vla{\v c}i{\'c} and B{\"o}lcskei(2022)]{vlacic2022}
+Verner Vla{\v c}i{\'c} and Helmut B{\"o}lcskei.
+\newblock Neural network identifiability for a family of sigmoidal nonlinearities.
+\newblock \emph{Constructive Approximation}, 55:\penalty0 173-224, 2022.
+
+\bibitem[Zhao et~al.(2025)Zhao, Walters, and Yu]{zhao2025}
+Bo~Zhao, Robin Walters, and Rose Yu.
+\newblock Symmetry in neural network parameter spaces, 2025.
+\newblock arXiv:2506.13018v2.
+
+\end{thebibliography}

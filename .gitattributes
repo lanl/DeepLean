@@ -1,0 +1,31 @@
+# Normalize text; source and configuration files use LF on every platform.
+* text=auto
+
+*.lean text eol=lf
+lean-toolchain text eol=lf
+*.py text eol=lf
+*.rb text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.tex text eol=lf
+*.sty text eol=lf
+*.cls text eol=lf
+*.bib text eol=lf
+*.svg text eol=lf
+Gemfile text eol=lf
+Gemfile.lock text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary documentation and raster images; no external filters or Git LFS.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary

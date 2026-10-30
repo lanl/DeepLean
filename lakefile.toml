@@ -1,0 +1,31 @@
+name = "DeepLean"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = ["DeepLean", "Challenge", "Solution"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "065356127b1dc0016f66b7283ce0ce2c4055aa55"
+
+[[require]]
+name = "nerodia"
+scope = "leanprover"
+rev = "a63b9c22f7a4690f3d0917b928aaf3e0d744a7ff"
+
+[[lean_lib]]
+name = "DeepLean"
+
+[[lean_lib]]
+name = "Challenge"
+roots = ["Challenge"]
+
+[[lean_lib]]
+name = "Solution"
+roots = ["Solution"]

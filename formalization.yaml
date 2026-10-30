@@ -1,0 +1,154 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/v0.4.schema.json
+version: "v0.4"
+
+project:
+  name: "Identifiability of Deep Normalized Attention"
+  description: >-
+    Formal proofs of a scalar depth-two counterexample to identifiability for
+    general positive injective Borel normalizers, with the witness discontinuous
+    at zero, and of fixed-positive-depth
+    identifiability for positive-temperature exponential softmax. The latter
+    includes an explicit nonempty Euclidean open dense locus with complete
+    singleton fibers and containment in the source-regular locus. The two
+    manuscript theorems are exposed as three Comparator declarations.
+  authors: ["James Amarel"]
+  license: "MIT"
+  responsible_maintainers: ["James Amarel"]
+
+classification:
+  arxiv: ["cs.LG"]
+  msc2020: ["68T07"]
+
+sources:
+  - title: >-
+      Identifiability of Deep Normalized Attention: Or, Machine Verified Proofs
+      for Neuroalgebraic Geometry
+    authors:
+      - "James Amarel"
+      - "Benjamin Migliori"
+      - "Nathan Debardeleben"
+      - "Emily Taylor"
+      - "Earl Lawrence"
+      - "Gerd J. Kunde"
+    id: "docs/manuscript/submission.tex"
+    type: "paper"
+    location: "Theorems 1 and 2; Appendix C (app:formal-certification)"
+    relationship: "formalizes"
+    note: >-
+      The three selected declarations express the two manuscript theorems.
+      The counterexample includes discontinuity at zero, and the generic
+      softmax clause includes containment in the source-regular locus.
+    license: "unknown"
+  - title: "Geometry of Lightning Self-Attention: Identifiability and Dimension"
+    authors: ["Nathan W. Henry", "Giovanni Luca Marchetti", "Kathlén Kohn"]
+    id: "https://arxiv.org/abs/2408.17221v3"
+    type: "paper"
+    location: "ICLR 2025; Section 3.4, Conjecture 3.10"
+    relationship: "background"
+    note: >-
+      The general-normalizer counterexample and exponential-softmax theorem
+      address the identifiability conjecture, rather than prove its unrestricted assertion.
+
+status:
+  scope: >-
+    Theorem 1 asserts a positive normalized injective Borel normalizer,
+    discontinuous at zero, with
+    distinct scalar depth-two partners on the entire nonzero-product locus and
+    equality on all two-token inputs. Theorem 2 treats positive temperature,
+    at least two tokens, equal positive depth, nonzero source final map, and
+    non-skew proper source prefix, with no regularity assumption on the
+    competing parameter or terminal source score. Its generic clause includes
+    nonemptiness, openness, density, source-regularity containment, and complete
+    singleton fibers. The library also retains the source-to-virtual architecture
+    bridge, log-affine corollaries, and boundary examples; these supporting
+    results are not separately selected in comparator.json. Reproduce local
+    verification using the commands in README.md; fresh results and source/tool
+    identities are written under .cache/local-proof/. Local development
+    checks do not establish confined Linux acceptance or registry registration.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["GPT-5.6 Sol"]
+      framework: "Codex"
+      tool_setup: >-
+        Lean proof search, debugging, source inspection, and manuscript drafting
+        in Visual Studio Code with Lean and OpenAI integrations, as reported by
+        the manuscript authors. The pinned runtime is specified by lean-toolchain.
+      cost:
+        wall_time: "not recorded"
+        spend_usd: "not recorded"
+        hardware: "Apple M5 Max MacBook Pro, as reported by the manuscript authors"
+      prompting_notes: "Iterative construction, debugging, and inspection of mathematical arguments and Lean proofs."
+    - method: "agent"
+      models: ["GPT-6"]
+      framework: "Codex"
+      tool_setup: >-
+        Source and statement inspection, reproducible local Lean builds,
+        interface and axiom checks, independent proof replay, regression tests,
+        metadata validation, and document production. Lean/Mathlib v4.35.0-rc2
+        and shared CPython 3.14.5 are selected explicitly.
+      cost:
+        wall_time: "not recorded"
+        spend_usd: "not recorded"
+        hardware: "macOS arm64"
+      prompting_notes: >-
+        Preserve both manuscript theorems, all mathematical hypotheses and
+        supporting results, and dependency and certification pins. Expose three
+        explicit clauses through one Challenge/Solution pair.
+  spend_usd: "not recorded"
+  notes: >-
+    Human authors supply the mathematical scope and manuscript. James Amarel
+    is the formalization author and responsible maintainer. Agent-generated
+    contributions require source inspection and executed proof checks. Formal
+    validity, statement fidelity, and confined verification are distinct claims.
+
+fidelity:
+  divergences: >-
+    No intended weakening of the two manuscript theorems. The counterexample
+    wrapper additionally includes discontinuity at zero from the manuscript
+    boundary remark and existing library lemma. The pointwise Lean
+    statement quantifies over natural dimensions; its nonzero final-map premise
+    excludes zero-dimensional cases. The generic statement uses finite indices
+    to express positive dimensions and tail length k to express depth k+1.
+    The manuscript's two numbered theorems are represented by three declarations.
+    The generic declaration explicitly includes source-regularity containment.
+
+review:
+  status: "agent-reviewed"
+  reviewers: []
+  notes: >-
+    Source interfaces and mathematical correspondence are inspected by agents.
+    Local checks can be reproduced using the verification instructions in
+    README.md; each run records results and source/tool identities under
+    .cache/local-proof/.
+    No independent human peer review, confined Linux acceptance, editorial
+    review, or Palomar registration is claimed.
+
+alignment:
+  namespace: "DeepLean.Attention"
+  statements:
+    - source: "Manuscript Theorem 1 (thm:negative)"
+      lean: "DeepLean.Attention.normalizer_counterexample"
+      module: "Solution"
+      status: "proved"
+      note: "Exact scalar counterexample with discontinuity at zero, nonempty open dense locus, and explicit partner equality on all inputs."
+    - source: "Manuscript Theorem 2 (thm:positive), pointwise clause"
+      lean: "DeepLean.Attention.softmax_identifiability"
+      module: "Solution"
+      status: "proved"
+      note: "Same-depth complete identifiability with nonzero final map and only proper-prefix source non-skewness."
+    - source: "Manuscript Theorem 2 (thm:positive), generic clause"
+      lean: "DeepLean.Attention.softmax_generic_identifiability"
+      module: "Solution"
+      status: "proved"
+      note: "Nonempty open dense coordinate locus, explicit source-regularity containment, and complete singleton fibers."
+
+acknowledgements: >-
+  Lean, Mathlib, Lean Beam, Nerodia, Comparator, lean4export, NanoDa, con-ron,
+  bubblewrap, the manuscript authors, and the authors of the background
+  attention work. The DeepLean code is licensed under MIT; the
+  manuscript author list and third-party asset terms are retained separately.

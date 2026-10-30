@@ -1,0 +1,2 @@
+# Preserve ordinary hyphens in page ranges after plainnat formats the bibliography.
+$bibtex = q{bibtex %O %S && perl -pi -e 's/(?<=\d)--+(?=\d)/-/g' %B.bbl};

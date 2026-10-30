@@ -1,0 +1,16 @@
+{
+  "challenge_module": "Challenge",
+  "solution_module": "Solution",
+  "theorem_names": [
+    "DeepLean.Attention.normalizer_counterexample",
+    "DeepLean.Attention.softmax_identifiability",
+    "DeepLean.Attention.softmax_generic_identifiability"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

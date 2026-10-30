@@ -1,0 +1,32 @@
+# Build products, local environments, and credentials
+.lake/
+.beam/
+.cache/
+*.loogle-index
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.o
+*.so
+*.dylib
+*.log
+*.pdf
+# Published artifact
+!/docs/manuscript/submission.pdf
+# Removed archives; regenerate proof evidence under .cache/
+/docs/verification/
+/docs/manuscript/template/
+/docs/manuscript/NeurReps_2026_Template/
+# LaTeX intermediates
+/docs/**/*.aux
+/docs/**/*.blg
+/docs/**/*.fdb_latexmk
+/docs/**/*.fls
+/docs/**/*.out
+/docs/**/*.toc
+/docs/**/*.synctex.gz

@@ -1,0 +1,1484 @@
+\documentclass[mlmain]{jmlr}
+\jmlrpmlr
+
+% Link to code: https://github.com/lanl/DeepLean
+
+% Preserve ligatures and accented glyphs under PDF text extraction.
+\usepackage[T1]{fontenc}
+\usepackage[protrusion=false,expansion=false]{microtype}
+\DisableLigatures{encoding=*,family=*}
+\input{glyphtounicode}
+\pdfgentounicode=1
+\usepackage{listings}
+
+% Reviewer-facing Lean declarations are read directly from the checked source.
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  literate=
+    {ℝ}{{$\mathbb{R}$}}1
+    {ℕ}{{$\mathbb{N}$}}1
+    {τ}{{$\tau$}}1
+    {∀}{{$\forall$}}1
+    {∃}{{$\exists$}}1
+    {→}{{$\to$}}1
+    {↦}{{$\mapsto$}}1
+    {∧}{{$\wedge$}}1
+    {¬}{{$\neg$}}1
+    {↔}{{$\leftrightarrow$}}1
+    {∈}{{$\in$}}1
+    {≤}{{$\leq$}}1
+    {≠}{{$\neq$}}1
+    {⟨}{{$\langle$}}1
+    {⟩}{{$\rangle$}}1
+    {₁}{{$_1$}}1
+    {₂}{{$_2$}}1
+}
+
+% Review watermark disabled for the camera-ready version.
+%\usepackage[hpos=300px,vpos=70px]{draftwatermark}
+%\SetWatermarkText{\test}
+%\SetWatermarkScale{1}
+%\SetWatermarkAngle{0}
+
+\setlength{\emergencystretch}{2em}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\T}{\mathsf{T}}
+\newcommand{\eps}{\varepsilon}
+
+% \newtheorem{myremark}{Remark}
+\newtheorem{mylemma}{Lemma}
+
+\newcounter{myremark}
+
+\newenvironment{myremark}
+  {\refstepcounter{myremark}%
+   \par\medskip
+   \noindent\textbf{Remark~\themyremark.}\ }
+  {\par\medskip}
+
+\jmlrvolume{}
+\firstpageno{1}
+\editors{}
+\jmlryear{2026}
+\jmlrworkshop{Symmetry and Geometry in Neural Representations}
+
+\title[Identifiability of Deep Normalized Attention]
+{Identifiability of Deep Normalized Attention: Or,\\ Machine Verified Proofs for Neuroalgebraic Geometry
+}
+% \author{Anonymous Authors}
+\author{%
+  \Name{James Amarel} \Email{jlamarel@lanl.gov} \\
+  \Name{Benjamin Migliori} \Email{ben.migliori@lanl.gov}\\
+  \Name{Nathan Debardeleben}  \Email{ndebard@lanl.gov}\\
+  \Name{Emily Taylor} \Email{ecasleton@lanl.gov}\\
+  \Name{Earl Lawrence} \Email{earl@lanl.gov}\\
+  \Name{Gerd J. Kunde} \Email{g.j.kunde@lanl.gov}\\
+  \addr Los Alamos National Laboratory, Los Alamos, NM 87545
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    Identifiability of deep normalized attention is not ensured by
+positivity and injectivity of the scalar normalizer: we construct a positive injective Borel
+normalizer for which every point of an explicit open dense set of scalar depth-two parameters has a distinct partner
+with exactly the same function realization.  For exponential softmax, however, we prove that the
+virtual weights are uniquely determined at every finite depth and every token
+count $t\ge2$, provided that the final linear map is nonzero and the score
+matrices before the final attention layer are not skew-symmetric.  The
+arbitrary-depth proof, developed with Codex and formally verified in Lean~4,
+uses inputs with one distinguished token and repeated copies of another.
+At the first layer where two networks have different score matrices, suitable
+probes produce a nonzero leading term in the displacement between
+corresponding output tokens as the distance between the incoming token
+classes tends to zero; the outgoing distance within each network is subdominant,
+so later normalized layers cannot cancel the leading displacement.
+
+\end{abstract}
+
+\begin{keywords}
+parameter identifiability, functional fibers, normalized self-attention
+\end{keywords}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Henry, Marchetti, and Kohn conjectured that a deep normalized self-attention
+network is identifiable from its realized function after passing to the
+virtual parametrization they introduced \citep{henry2025}.  Their lightning,
+or unnormalized, model retains layerwise rescaling symmetry even after primitive
+query-key factorizations and changes of hidden-state coordinates have been
+absorbed into the virtual weights; restoring row normalization suggested that
+the remaining rescalings should disappear.  The resulting conjecture, and the
+numerical evidence that softmax breaks the lightning rescaling symmetry, were later
+highlighted in the broader review of neural-network parameter symmetries by
+\citet{zhao2025}.  
+In the same single-head attention setting, write
+$W$ for the virtual weights and let the realization map send $W$ to the function
+$\phi_W^S$ that it defines on token matrices, where
+$S:\R\to\R_{>0}$ is injective and $S(0)=1$ \citep{henry2025}.  The complete functional fiber of
+$W$ is the set of all virtual parameters that identically realize $\phi_W^S$ on the
+whole input space.  \citet{henry2025} proved that this
+fiber is a singleton at one layer for tokens $t\ge2$ when the value map is nonzero,
+conjectured generic singleton fibers at arbitrary depth, and supported the
+conjecture by a sampled-Jacobian calculation at depth two.  We
+resolve that conjecture in the virtual parametrization in which it was posed.
+
+Composing normalized attention layers makes the deep problem different from
+the one-layer theorem: each row retains only ratios of scalar weights, and a
+later score matrix is evaluated only on token configurations produced by the
+earlier normalized layers.  We construct a positive injective Borel normalizer
+with $S(0)=1$ and $S(4z)=S(z)/4$ for $z\ne0$.  
+
+Consider a scalar two-layer,
+two-token network with score parameters $m_1,m_2$ and final linear map $l$,
+where $m_1m_2l\ne0$.  The construction ensures that the first layer sends
+every nonzero input to two nonzero tokens, so $m_2\ne0$ makes every
+second-layer score nonzero.  Replacing $m_2$ by $4m_2$ therefore multiplies
+every unnormalized weight in each second-layer row by $1/4$, which cancels
+under normalization.  The two networks also agree at zero, so the distinct
+tuples $(m_1,m_2,l)$ and $(m_1,4m_2,l)$ realize the same function.  Every
+point with $m_1m_2l\ne0$ thus lies in a non-singleton fiber, and these points
+form the open dense complement of the three coordinate hyperplanes.
+
+For standard fixed-temperature softmax, the preceding nonidentifiability
+cannot occur under the following explicit conditions: the final linear map
+is nonzero and each score matrix before the final attention layer is not
+skew-symmetric.  At every finite depth and every token count $t\ge2$, the
+realized function then uniquely determines all virtual weights.  This
+uniqueness excludes every other parameter point of the same dimensions and
+depth, without assuming that the other point satisfies the same
+nondegeneracy conditions, and the hypotheses hold on an explicit open dense
+set.  The proof first determines the final linear map from constant inputs,
+then compares two networks on inputs formed from one distinguished token
+and repeated copies of another.  At the first differing score matrix, the
+two networks receive the same two token classes.  As the distance $s$
+between these classes tends to zero, suitable probes produce a nonzero
+leading $s^2$ term in the displacement between corresponding output tokens,
+while the outgoing distance within each network is $O(s^3)$.  Subsequent
+normalized layers average tokens within these smaller gaps and therefore
+preserve the leading displacement.  The probes are chosen so that the final
+linear map does not annihilate the leading displacement, allowing the score
+matrices to be identified successively through the depth.
+
+\section{Related work}
+\label{sec:related}
+Exact recovery from a realized function has been established for specific
+classes of feedforward networks.  Minimal scalar-output networks with one
+hidden tanh layer are identifiable up to their finite structural symmetries
+\citep{sussmann1992}, while analytic continuation recovers generic fully
+connected deep tanh networks \citep{fefferman1994}.
+\citet[Theorem~1]{vlacic2022} construct a family of activations for which
+networks of arbitrary depth and connectivity are identifiable up to
+hidden-neuron permutations under their nondegeneracy and no-clones
+hypotheses.  For ReLU networks, \citet{phuong2020} study functional
+equivalence modulo positive rescalings and neuron permutations under
+architectural and geometric restrictions, while \citet{stock2023} construct
+an embedding invariant under positive neuron rescaling.
+
+Neuron permutations and positive rescalings need not exhaust the functional
+fibers of ReLU networks \citep{grigsby2023}.  At the infinitesimal level,
+functional dimension measures variation of the realized function through
+ranks of finite-batch evaluation Jacobians
+\citep{grigsby2026functionaldimension,grigsby2024persistent}.
+For depth-two softmax networks, the sampled Jacobian ranks reported by
+\citet{henry2025} provide local evidence for the normalized attention
+conjecture, but even injectivity of the realization map in a neighborhood of
+a virtual parameter point does not exclude another point outside that
+neighborhood realizing the same function on every input.
+
+\citet{brunner2020} show that distinct attention weights can produce the same
+head output for a fixed input and fixed value vectors.  For scalar-output
+attention regressors, \citet{bhattamishra2026} recover a single head's score
+matrix and nonzero value vector from exact input-output queries
+and exhibit multihead nonuniqueness when heads share a score matrix;
+\citet{kim2026queries} recover canonical multihead score-matrix/value-vector
+pairs up to head permutation using exact variable-length queries.  For
+primitive multihead parameters,
+\citet{tran2025nfn} characterize functional equivalence under nondegeneracy
+conditions over inputs of every sequence length, while
+\citet{henry2026multihead} classifies generic fibers at a fixed token count
+$t\ge3$.  \citet{tran2026attention} show that additive sinusoidal encodings
+preserve functional equivalence, whereas rotary encodings restrict the
+query-key symmetry group.\looseness=-1
+
+For a single lightning-attention layer, \citet{alexandr2026} study polynomial
+relations among the coefficients of the realized function.  At arbitrary
+depth, \citet*{henry2025} pass to virtual weights, removing primitive
+factorization and hidden-coordinate ambiguities.  Their lightning fibers
+retain layerwise rescalings, and their normalized-attention conjecture asks
+whether the entire input-output function generically determines the virtual
+weights uniquely.  We resolve this conjecture, constructing non-singleton
+fibers for an admissible normalizer and proving generic singleton fibers for
+fixed-temperature softmax.
+
+\section{Virtual normalized attention and functional fibers}
+\label{sec:model}
+
+Let $d,t\ge1$ be integers denoting the embedding dimension and token count, respectively.
+Write $X=(x_1,\ldots,x_t)\in\R^{d\times t}$ for an indexed sequence of
+token columns $x_i\in\R^d$.  For a score matrix $M\in\R^{d\times d}$ and
+a positive normalizer $S:\R\to\R_{>0}$, define the layer action through
+its $i$th output token column,
+\begin{equation}
+ [\T_M^S(X)]_i
+ =\frac{\sum_{j=1}^t S(x_i^\top Mx_j)x_j}
+        {\sum_{j=1}^t S(x_i^\top Mx_j)},
+ \label{eq:layer}
+\end{equation}
+where each position $i=1,\ldots,t$ attends to every input token, including
+$j>i$, so the model has no temporal or causal masking.
+For positive integers $\ell$ and $d_{\mathrm{out}}$, we consider 
+depth
+$\ell$ and output dimension $d_{\mathrm{out}}$ normalized attention networks realized by the composition 
+\begin{equation}
+ \phi_W^S(X)=\bigl(L\circ\T_{M_\ell}^S\circ\cdots\circ\T_{M_1}^S\bigr)(X),
+ \label{eq:realization}
+\end{equation}
+where
+\begin{equation}
+ W=(M_1,\ldots,M_\ell,L)\in
+ (\R^{d\times d})^\ell\times\R^{d_{\mathrm{out}}\times d} =
+ \cP_{d,d_{\mathrm{out}},\ell}
+\end{equation}
+is the tuple of virtual weights.  The final map
+$L:\R^d\to\R^{d_{\mathrm{out}}}$ acts on each token. For a fixed normalizer
+$S$ and token count $t$, we study the complete virtual fiber of $W$,
+\begin{equation}
+ \cF_S(W)=\{W'\in\cP_{d,d_{\mathrm{out}},\ell}:
+                    \phi_{W'}^S=\phi_W^S\},
+ \label{eq:fiber}
+\end{equation}
+consisting of all virtual parameter tuples of the same dimensions and depth
+that realize the same function on every input token matrix; identifiability
+is precisely the condition $\cF_S(W)=\{W\}$, under which equality of the
+realized functions forces equality of every score matrix and the final
+linear map.
+In the notation of \citet[Section~3.3, Eq.~(8)]{henry2025}, let $V_r$ be the
+value map and $A_r$ the primitive score matrix at layer $r$, and set
+$L_r=V_r\cdots V_1$.  Then $M_1=A_1$, $M_r=L_{r-1}^\top A_rL_{r-1}$ for
+$r>1$, and $L=L_\ell$.  Moving these cumulative value maps through the
+normalized layers gives Equation~\eqref{eq:realization}, so Conjecture~3.10
+concerns the virtual fiber after the primitive factorization data have been
+absorbed.
+
+For a fixed query token $x_i\in\R^d$, let
+$s_{ij}=x_i^\top Mx_j$ denote the score assigned to key $x_j$, and let
+$p_{ij}$ denote the corresponding normalized attention weight.  Then
+\begin{equation}
+ \frac{p_{ij}}{p_{ik}}
+ =
+ \frac{S(s_{ij})}{S(s_{ik})},
+ \label{eq:row-odds}
+\end{equation}
+so normalization retains the ratios among $S(s_{i1}),\ldots,S(s_{it})$, but
+discards their common scale: multiplying all these values by the same
+positive constant leaves the attention row unchanged.  Injectivity of $S$
+permits recovery of $s_{ij}$ from $S(s_{ij})$, but does not by itself permit
+recovery of the scores from a normalized attention row.  In contrast, exponential
+softmax $S_\tau(z)=e^{z/\tau}$, with fixed $\tau>0$, implies
+$\tau\log(p_{ij}/p_{ik})=s_{ij}-s_{ik}$, so the normalized weights determine
+the score differences within each row.  For one layer, $t\ge2$, and a
+nonzero value map, the realized function determines the score matrix
+\citep{henry2025}.  At greater depth, however, each subsequent score matrix
+is evaluated on token configurations produced by the preceding normalized
+layers; identifiability thus depends on whether, under the successive action
+of the normalized layers, distinct sequences of score matrices produce
+distinct input-output functions.
+
+\begin{theorem}[Counterexample to Conjecture~3.10 of \citet{henry2025}]
+\label{thm:negative}
+There exists a positive injective Borel map $S:\R\to\R_{>0}$ with $S(0)=1$ such
+that, for $d=d_{\mathrm{out}}=1$, $t=2$, and $\ell=2$, every
+$W=(m_1,m_2,l)$ with $m_1m_2l\ne0$ has the distinct partner
+$W^\sharp=(m_1,4m_2,l)$ obeying $\phi_{W^\sharp}^S=\phi_W^S$.
+Moreover, the parameter set $\{m_1m_2l\ne0\}$ is nonempty, Euclidean open, and dense.
+\end{theorem}
+
+\begin{proof}
+Row normalization is unchanged when every unnormalized weight in a row is
+multiplied by the same positive constant.  For $x\ne0$, let
+$q(x)=\log_4|x|$, $k(x)=\lfloor q(x)\rfloor$, and
+$r(x)=q(x)-k(x)\in[0,1)$.  Define
+\begin{equation}
+S(x) = 4^{g(x)}, \text{ where}\quad
+ g(x)=
+ \begin{cases}
+  -k(x)+\frac34+\frac18r(x),&x>0,\\
+  -k(x)-\frac34+\frac18r(x),&x<0,\\
+  0,&x=0,
+ \end{cases}
+ \label{eq:exotic-normalizer}
+\end{equation}
+with $k(x)$ specifying the magnitude interval
+$4^{k(x)}\le|x|<4^{k(x)+1}$ and $r(x)$ determining the relative magnitude
+through $|x|/4^{k(x)}=4^{r(x)}$.  The fractional part of $g(x)$ lies in
+$[3/4,7/8)$ for $x>0$ and $[1/4,3/8)$ for $x<0$, thereby determining the
+sign of $x$.  Appendix~\ref{app:counterexample} shows that $x$ can be
+recovered from $g(x)$, proving injectivity of $g$ and hence of $S$.  For
+$x\ne0$, multiplication by four increases $k(x)$ by one while preserving
+$r(x)$ and the sign, so $g(4x)=g(x)-1$ and $S(4x)=S(x)/4$.  Positivity and
+$S(0)=1$ follow from the definition; Appendix~\ref{app:counterexample}
+verifies Borel measurability.
+
+Let $(a,b)\ne(0,0)$ be an input and $(y_1,y_2)=\T_{m_1}^S(a,b)$ its
+first-layer output.  The second-layer scores are $m_2y_i y_j$,
+$i,j\in\{1,2\}$, so $m_2\ne0$ reduces their nonvanishing to $y_1y_2\ne0$.
+Appendix~\ref{app:counterexample} proves $zS(z)>wS(-w)$ for all $z,w>0$,
+which excludes cancellation in either first-layer row when $ab<0$ and
+$m_1\ne0$.  If $ab\ge0$, the tokens have the same weak sign and at least
+one is nonzero, so every positive weighted average of them is nonzero.
+Thus $y_1y_2\ne0$.
+
+Since $W$ and $W^\sharp$ differ only in their second score matrix, they have
+the same first-layer output $(y_1,y_2)$.  For every nonzero input,
+$m_2y_i y_j\ne0$ for all $i,j$, and hence
+$S(4m_2y_i y_j)=S(m_2y_i y_j)/4$.  Replacing $m_2$ by $4m_2$ therefore
+multiplies every unnormalized weight in each second-layer row by the same
+factor $1/4$, which cancels under row normalization.  The zero input agrees
+separately, and the common final map $l$ preserves equality of the two
+realizations.  Because $m_2\ne0$, the parameter points are distinct.  Finally,
+$\{m_1m_2l\ne0\}$ is the complement of the coordinate hyperplanes $m_1=0$,
+$m_2=0$, and $l=0$, and is therefore nonempty, open, and dense.
+\end{proof}
+
+
+\begin{myremark}
+For a one-layer scalar network with the normalizer of
+Theorem~\ref{thm:negative}, score parameter $m\ne0$, and final map $l\ne0$,
+an input $(a,0)$ with $a\ne0$ gives the query $a$ one nonzero score $ma^2$
+and one zero score.  Replacing $m$ by $4m$ scales $S(ma^2)$ by $1/4$ while
+leaving $S(0)=1$ fixed, so the normalized weight on $a$, and hence the
+output, changes, consistently with the one-layer identifiability theorem of
+\citet{henry2025}.  In the depth-two construction, the first layer sends
+every nonzero input to two nonzero tokens, so replacing $m_2$ by $4m_2$
+scales every unnormalized second-layer weight by $1/4$ and preserves the
+normalized weights.
+\end{myremark}
+
+\begin{myremark}
+The normalizer in Theorem~\ref{thm:negative} satisfies all of the assumptions
+on $S$ in Conjecture~3.10 of \citet[Section~3.4]{henry2025}: it is positive,
+injective, and satisfies $S(0)=1$.  It is also Borel measurable.  The construction
+is nevertheless discontinuous, and we leave open whether continuity together
+with the hypotheses of \citet{henry2025} is sufficient for generic
+identifiability.
+\end{myremark}
+
+\begin{theorem}[Identifiability for exponential softmax]
+\label{thm:positive}
+Let $d,d_{\mathrm{out}}\ge1$, $t\ge2$, $\ell\ge1$, and $\tau>0$, and set
+$S_\tau(z)=e^{z/\tau}$.  If
+$W=(M_1,\ldots,M_\ell,L)\in\cP_{d,d_{\mathrm{out}},\ell}$ satisfies a
+nonvanishing condition on its final map and non-skewness conditions on the
+score matrices before its final attention layer,
+\begin{equation}
+ L\ne0
+ \quad\text{and}\quad M_r^\top\ne-M_r\quad\text{for }1\le r<\ell,
+ \label{eq:source-regular}
+\end{equation}
+then
+\begin{equation}
+ \phi_{W'}^{S_\tau}=\phi_W^{S_\tau}
+ \quad\Longrightarrow\quad W'=W,
+ \label{eq:positive-result}
+\end{equation}
+for every $W'\in\cP_{d,d_{\mathrm{out}},\ell}$, without a nondegeneracy
+assumption on $W'$.  Moreover, for any $1\le i\le d$ and
+$1\le o\le d_{\mathrm{out}}$, the set
+\begin{equation}
+ \cU_{oi}
+ =
+ \left\{
+ W\in\cP_{d,d_{\mathrm{out}},\ell}:
+ L_{oi}\prod_{r=1}^{\ell-1}(M_r)_{ii}\ne0
+ \right\},
+ \label{eq:coordinate-locus}
+\end{equation}
+is nonempty, Euclidean open and dense, is contained in the set
+specified by Equation~\eqref{eq:source-regular}, and satisfies
+$\cF_{S_\tau}(W)=\{W\}$ for every $W\in\cU_{oi}$;
+here the product is understood to equal one when $\ell=1$.
+\end{theorem}
+
+\begin{proof}
+Without loss of generality, let $\tau=1$.  Suppose
+$\phi_W^{S_\tau}=\phi_{W'}^{S_\tau}$, with
+$W'=(M_1',\ldots,M_\ell',L')$ otherwise arbitrary.
+We call the network with virtual parameters $W$ the source network and
+the network with virtual parameters $W'$ the competing network.
+
+Our identification of the virtual weights has five steps, with $M_r$ and
+$M_r'$ compared successively for $r=1,\ldots,\ell$, namely,
+1) constant token sequences determine the final linear map because every
+attention layer fixes identical tokens and the network output repeats their
+image under that map;
+2) once $M_j=M_j'$ for every $j<r$,
+Lemma~\ref{lem:two-class-closure} keeps the two token classes of
+$(x+\varepsilon u,x-\varepsilon u,\ldots,x-\varepsilon u)$,
+$\varepsilon\ne0$ and $u\ne0$, distinct through layers $1,\ldots,r-1$
+whenever $u^\top M_j u\ne0$ for every $j<r$;
+3) at layer $r$, Lemma~\ref{lem:quadratic-signal} computes the
+quadratic coefficient of the displacement between corresponding output
+tokens of the two networks and bounds each network's internal token gap at
+cubic order in the incoming gap;
+4) Lemma~\ref{lem:suffix-persistence} preserves this quadratic coefficient
+through arbitrary, possibly different score matrices at layers
+$r+1,\ldots,\ell$ because each
+normalized layer takes convex combinations within its input token segment;
+5) Lemma~\ref{lem:usable-directions} supplies a dense set of directions
+$u$ satisfying $Lu\ne0$ and $u^\top M_j u\ne0$ for every $j<r$, so equality
+of the realized functions determines $M_r$ successively for
+$r=1,\ldots,\ell$;
+
+Since constant token sequences pass unchanged through normalized attention layers 
+\begin{equation}
+ \phi_W^{S_\tau}(x,\ldots,x)
+ =(Lx,\ldots,Lx)
+ \quad\text{and}\quad
+ \phi_{W'}^{S_\tau}(x,\ldots,x)
+ =(L'x,\ldots,L'x).
+ \label{eq:constant-recovery-proof}
+\end{equation}
+Thus, evaluating on repeated copies of each standard basis vector $e_j$ gives
+$Le_j=L'e_j$ and establishes $L=L'$ by identifying every column.
+
+Fix $1\le r\le\ell$ and suppose inductively that $M_j=M_j'$ for every
+$j<r$.  To compare $M_r$ and $M_r'$, take an arbitrary base point
+$x\in\R^d$ and choose, using Lemma~\ref{lem:usable-directions}, any
+direction $u\in\R^d$ satisfying $Lu\ne0$ and $u^\top M_j u\ne0$ for
+every $j<r$.  For a nonzero perturbation
+$\varepsilon$, consider
+\begin{equation}
+ X_\varepsilon(x,u)
+ =(x+\varepsilon u,x-\varepsilon u,\ldots,x-\varepsilon u),
+ \label{eq:centered-probe-proof}
+\end{equation}
+with one token in the distinguished class and $t-1$ tokens in the repeated
+class.  The condition $Lu\ne0$ prevents annihilation of nonzero
+displacements along $u$, while Lemma~\ref{lem:two-class-closure} uses
+$u^\top M_j u\ne0$ for $j<r$ to keep the two token classes distinct
+through layers $1,\ldots,r-1$.
+
+For token values $x+pu$ and $x+qu$,
+Lemma~\ref{lem:two-class-closure} gives the layer action
+\begin{equation}
+ \T_M^{S_\tau}(x+pu,x+qu,\ldots,x+qu)
+ =(x+p^+u,x+q^+u,\ldots,x+q^+u),
+ \label{eq:two-class-form-proof}
+\end{equation}
+with the base point, direction, and multiplicities unchanged, and its
+noncollapse conclusion applies to each $M_j$ with $j<r$ because
+$u^\top M_j u\ne0$.  The common layers $1,\ldots,r-1$ therefore produce the same
+scalar coefficients $p_\varepsilon$ and $q_\varepsilon$ in both networks
+immediately before layer $r$, with $p_\varepsilon$ belonging to the
+distinguished class and $q_\varepsilon$ to the repeated class.  Convexity
+keeps both coefficients in $[-|\varepsilon|,|\varepsilon|]$, while prefix
+noncollapse makes their difference $s_\varepsilon=p_\varepsilon-q_\varepsilon$
+a nonzero incoming gap that tends to zero with $\varepsilon$.
+
+In the source network, the layer-$r$ tokens have the form
+$x+y_i u$, while those in the competing network have the form
+$x+y_i' u$, with $i=1$ labeling the distinguished class and
+$i=2$ the repeated class; both coefficient pairs depend on $\varepsilon$
+through $p_\varepsilon$ and $q_\varepsilon$.  For each $i\in\{1,2\}$, the
+quantitative estimates following Lemma~\ref{lem:quadratic-signal} express
+the difference between corresponding scalar coefficients as
+\begin{equation}
+ y_i-y_i'
+ =\kappa_n x^\top(M_r-M_r')u\,s_\varepsilon^2
+  +O(|\varepsilon|s_\varepsilon^2),
+ \label{eq:quadratic-signal-proof}
+\end{equation}
+where $\kappa_n=n/(1+n)^2$ is the positive multiplicity factor in the
+quadratic term and $n=t-1$ is the repeated-class multiplicity.
+Both classes have the same quadratic coefficient, although their
+$O(|\varepsilon|s_\varepsilon^2)$ remainders can differ.  The difference
+between the distinguished and repeated coefficients in the source network
+satisfies
+\begin{equation}
+ y_1-y_2
+ =\kappa_n(u^\top M_r u)s_\varepsilon^3+O(|s_\varepsilon|^4);
+ \label{eq:cubic-gap-proof}
+\end{equation}
+likewise, the internal gap in the competing network satisfies
+\begin{equation}
+ y_1'-y_2'
+ =\kappa_n(u^\top M_r' u)s_\varepsilon^3+O(|s_\varepsilon|^4),
+ \label{eq:cubic-gap-primed-proof}
+\end{equation}
+so both internal gaps are $O(|s_\varepsilon|^3)$ and subdominant to the
+quadratic scale in Equation~\eqref{eq:quadratic-signal-proof}.
+
+In each network, every later token remains in the segment spanned by its
+two layer-$r$ token values.  The $O(|s_\varepsilon|^3)$ bound on each
+segment's diameter therefore also bounds the change in displacement between
+corresponding tokens through arbitrary remaining layers.  Since
+$p_\varepsilon$ and $q_\varepsilon$ lie in $[-|\varepsilon|,|\varepsilon|]$,
+their gap satisfies $|s_\varepsilon|\le2|\varepsilon|$, which absorbs this
+contribution into the $O(|\varepsilon|s_\varepsilon^2)$ remainder in the
+quadratic expansion.  For the distinguished first output token, denoted by
+the subscript $1$ and taking values in $\R^{d_{\mathrm{out}}}$, applying the
+common final map therefore yields
+\begin{equation}
+ [\phi_W^{S_\tau}(X_\varepsilon)]_1
+ -[\phi_{W'}^{S_\tau}(X_\varepsilon)]_1
+ =s_\varepsilon^2
+   \left[\kappa_n x^\top(M_r-M_r')u+O(|\varepsilon|)\right]Lu,
+ \label{eq:directional-recovery-proof}
+\end{equation}
+whose left-hand side vanishes by equality of the realized functions.
+Since $s_\varepsilon\ne0$ and $Lu\ne0$, a nonzero value of the
+$\varepsilon$-independent coefficient $\kappa_n x^\top(M_r-M_r')u$
+would dominate the $O(|\varepsilon|)$ remainder as $\varepsilon\to0$
+and contradict functional equality; positivity of $\kappa_n$ therefore yields
+\begin{equation}
+ x^\top(M_r-M_r')u=0,
+ \label{eq:directional-bilinear-proof}
+\end{equation}
+for every $x\in\R^d$ and every $u$ satisfying $Lu\ne0$ and
+$u^\top M_j u\ne0$ for every $1\le j<r$.
+For the polynomial
+\begin{equation}
+ P_r(u)=\|Lu\|^2\prod_{j=1}^{r-1}u^\top M_j u,
+ \label{eq:usable-polynomial-proof}
+\end{equation}
+the set $\{u\in\R^d:P_r(u)\ne0\}$ consists exactly of the directions
+satisfying $Lu\ne0$ and $u^\top M_j u\ne0$ for every $1\le j<r$.
+Each factor of $P_r$ is not identically zero because $L\ne0$ and
+$M_j^\top\ne-M_j$ for every $1\le j<r$.  By Lemma~\ref{lem:usable-directions},
+$\{u:P_r(u)\ne0\}$ is dense, so for each fixed $x$, continuity in $u$ extends the
+bilinear identity to every direction.  Taking $x=e_i$ and $u=e_j$ then
+identifies each entry of $M_r-M_r'$, establishing $M_r=M_r'$ for the
+inductive step.  At $r=1$, the prefix is empty, so the same argument starts
+the induction without a preceding score condition; applying it through
+layer $\ell$ establishes $W=W'$ by recovering every score matrix and the
+final map.  Recovery of $M_r$ uses non-skewness only of $M_j$ for $j<r$,
+so $M_\ell$ and all competing score matrices $M_1',\ldots,M_\ell'$
+remain unrestricted.
+
+\begingroup\emergencystretch=3em
+It remains to prove the explicit open-dense clause.  The coordinate product
+$L_{oi}\prod_{r=1}^{\ell-1}(M_r)_{ii}$ is a polynomial in the entries of
+$W$ and is not identically zero, since it equals one when every matrix
+entry of $W$ equals one.  Lemma~\ref{lem:usable-directions} therefore shows
+that its nonvanishing set $\cU_{oi}$ is nonempty, Euclidean open, and dense.
+If $W\in\cU_{oi}$, then $L_{oi}\ne0$
+and $(M_r)_{ii}\ne0$ for every $r<\ell$, which ensures $L\ne0$ and excludes
+skew-symmetry of each preceding score matrix because a real skew-symmetric
+matrix has zero diagonal.  The pointwise identifiability result therefore
+applies at every $W\in\cU_{oi}$, giving singleton complete fibers on this
+open dense set.\par\endgroup
+
+For any fixed primitive architecture whose query, key, and value matrices
+have positive row and column dimensions,
+substituting the query, key, and value matrices into the coordinate product
+in Equation~\eqref{eq:coordinate-locus} gives a nonzero polynomial:
+choosing every primitive matrix entry strictly positive makes $L_{oi}$ and
+every $(M_r)_{ii}$ positive.  The resulting polynomial has an open dense
+nonvanishing set in primitive parameter space, whose image under the
+primitive-to-virtual map is precisely the intersection of $\cU_{oi}$ with
+the architecture's virtual parameter image.  Continuity of the
+primitive-to-virtual map makes this intersection dense in the virtual
+parameter image, and openness of $\cU_{oi}$ makes it relatively open;
+hence singleton complete fibers hold on a relatively open dense subset of
+the virtual parameters realized by that architecture.
+\end{proof}
+
+\begin{myremark}
+Although the directions used to recover $M_r$ are selected through the quadratic
+forms $u^\top M_j u$ for $1\le j<r$, recovery uses the bilinear identity
+$x^\top(M_r-M_r')u=0$ with $x$ and $u$ independent.  The argument therefore
+determines the full score matrix, including its skew-symmetric component,
+rather than only its symmetric part.
+\end{myremark}
+
+\begin{myremark}
+Theorem~\ref{thm:positive} imposes one-sided hypotheses.  No nondegeneracy is
+assumed of $W'$ a priori: constant inputs force $L'=L$, while recovery of
+$M_r$ requires no nondegeneracy assumption on any unrecovered score matrix of
+$W'$.  On the source side, non-skewness is required only for
+$M_1,\ldots,M_{\ell-1}$ because recovery of $M_r$ requires noncollapse
+only through the prefix $M_1,\ldots,M_{r-1}$; the terminal score $M_\ell$
+belongs to none of these prefixes.  Likewise $L\ne0$ ensures that some displacement survives
+the final map, without requiring $L$ to have full rank.
+
+The full source set defined by Equation~\eqref{eq:source-regular} is itself
+Euclidean open and dense: $L=0$ and each skew-symmetric matrix space are
+proper closed linear subspaces of their respective finite-dimensional
+ambient spaces.  $\cU_{oi}$ is a more explicit algebraic open-dense
+subset obtained by choosing one coordinate direction that satisfies every
+required nonvanishing condition simultaneously.  
+\end{myremark}
+
+\section{Tool and computational resource disclosure}
+\label{sec:ai-disclosure}
+
+Following the disclosure and verifiability principles advocated by the
+Leiden Declaration on Artificial Intelligence and Mathematics
+\citep{leiden2026} and discussed by \citet{tao2026ai}, we record the role of
+automated tools in this work. Codex was used with Lean~4 for proof search,
+theorem proving, proof debugging, inspection and summarization of formal code,
+and manuscript drafting and revision. The authors report extensive use of
+GPT-5.6 Sol, primarily at very-high reasoning effort, with aggregate inference
+on the order of tens of millions of tokens. This is an author-reported estimate,
+not a measurement of the verification commands.
+
+James Amarel is the formalizer and maintainer. The mathematical claims and
+exposition remain the responsibility of the authors. Supporting Lean code,
+including the headline theorems, log-affine corollaries, and boundary examples,
+is organized in the DeepLean root Lake project.\footnote{Code: \url{https://github.com/lanl/DeepLean}.} Its Challenge/Solution
+interface exposes the three declarations described in
+Appendix~\ref{app:formal-certification}. Local compilation, statement comparison,
+transitive axiom audits, and independent proof replay have distinct roles;
+none establishes the correspondence between formal statements and mathematical
+prose without a separate semantic review. The reproducible commands are
+documented in the repository's \path{README.md}; each run records its results
+under \path{.cache/local-proof/}.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Positivity and injectivity of the scalar normalizer do not suffice for
+identifiability of deep normalized attention.
+Indeed, row normalization retains ratios rather
+than individual weights, and we exhibit an admissible normalizer whose ratio
+structure produces non-singleton virtual fibers on an open dense set.
+Exponential softmax behaves differently: at every finite depth, complete
+virtual fibers are singletons under the explicit conditions of
+Theorem~\ref{thm:positive}.  Injectivity of $S$ permits recovery of a scalar
+score $z$ from $S(z)$, but does not by itself exclude changes in the score
+matrices that, for every input, multiply the unnormalized weights within
+each attention row by a common positive factor and hence preserve the
+realized function.
+
+For softmax, Theorem~\ref{thm:positive} replaces the local evidence from
+finite-batch Jacobian ranks for deep normalized attention with a global statement on the complete functional
+fiber.  Equality of the realized function on the whole input space recovers
+the virtual score matrices successively, even when the competing parameter
+point is arbitrary within the same virtual parameter space, and the hypotheses
+hold on an explicit nonempty Euclidean-open dense set.  Thus normalization cannot be understood simply as
+removing a rescaling symmetry from lightning attention: its ratio structure
+can either create persistent functional ambiguity or eliminate it under
+composition.  In the softmax case considered here, the latter rigidity
+separates the remaining raw query-key and value-coordinate redundancies from
+the virtual identifiability of the deep normalized model.
+\clearpage
+\bibliography{pmlr-sample}
+
+\clearpage
+\appendix
+
+\section{The counterexample normalizer and its fiber}
+\label{app:counterexample}
+
+This appendix verifies positivity, injectivity, and Borel measurability of
+the normalizer in Theorem~\ref{thm:negative} and proves that
+$(m_1,m_2,l)$ and $(m_1,4m_2,l)$ realize the same function whenever
+$m_1m_2l\ne0$.
+
+\subsection{Injectivity, measurability, and discontinuity}
+
+Write $\{u\}=u-\lfloor u\rfloor$ for the fractional part of a real number
+$u$.  For $x>0$, Equation~\eqref{eq:exotic-normalizer} gives
+$\{g(x)\}=3/4+r(x)/8\in[3/4,7/8)$, whereas for $x<0$ the decomposition
+\begin{equation}
+ g(x)=(-k(x)-1)+\left(\frac14+\frac18r(x)\right),
+ \label{eq:negative-g-decomposition}
+\end{equation}
+places $\{g(x)\}$ in $[1/4,3/8)$.  The disjoint intervals determine the
+sign of $x$ from $\{g(x)\}$, while their exclusion of zero separates
+$g(0)=0$ from every $g(x)$ with $x\ne0$.
+
+For $x>0$, the integer part of $g(x)$ recovers
+$k(x)=-\lfloor g(x)\rfloor$, and its fractional part recovers
+$r(x)=8(\{g(x)\}-3/4)$.  For $x<0$, the integer shift in
+Equation~\eqref{eq:negative-g-decomposition} gives
+$k(x)=-\lfloor g(x)\rfloor-1$, while the fractional part yields
+$r(x)=8(\{g(x)\}-1/4)$.  For $x\ne0$, reconstruction of the magnitude follows from
+\begin{equation}
+ |x|=4^{k(x)+r(x)},
+ \label{eq:g-decoding}
+\end{equation}
+which determines $x$ together with its recovered sign and proves
+injectivity of $g$.  Since $u\mapsto4^u$ is strictly increasing, $S=4^g$
+is injective, and positivity and $S(0)=1$ follow from its definition.
+
+On each half-line $x>0$ and $x<0$, the function $g$ is obtained from
+continuous functions, the Borel floor function, and arithmetic operations.
+Assigning $g(0)=0$ on the remaining singleton therefore makes $g$ Borel
+measurable on $\R$, and continuity of exponentiation makes $S=4^g$ Borel
+measurable.  The sequence $x_n=4^{-n}$ tends to zero and satisfies
+$k(x_n)=-n$ with $r(x_n)=0$, so $S(x_n)=4^{n+3/4}\to\infty$ while
+$S(0)=1$, proving discontinuity at zero.
+
+Positivity, injectivity, and $S(0)=1$ are the normalizer hypotheses of
+\citet[Section~3.4]{henry2025}; Borel measurability is an additional
+property of the construction.
+
+\subsection{Scaling and domination}
+
+For $x\ne0$, the identity $q(4x)=q(x)+1$ gives $k(4x)=k(x)+1$ and
+leaves $r(x)$ unchanged.  Since multiplication by four preserves the sign
+of $x$, the definition of $g$ yields $g(4x)=g(x)-1$, and exponentiation
+gives
+\begin{equation}
+ S(4x)=\frac14S(x),
+ \label{eq:four-scaling-app}
+\end{equation}
+so scaling all scores in a row by four leaves its normalized weights
+unchanged whenever every score in that row is nonzero.  At $z=0$, the
+equation $S(4z)=S(z)/4$ fails because $S(0)=1$, so using a uniform
+factor $1/4$ for all second-layer weights requires every second-layer
+score to be nonzero.
+
+For arbitrary $z,w>0$, the construction also satisfies
+\begin{equation}
+ zS(z)>wS(-w),
+ \label{eq:mass-dominance}
+\end{equation}
+because the positive and negative branches of $g$ give separated
+exponent ranges.  Indeed, multiplying $S(z)$ by $z=4^{k(z)+r(z)}$ yields
+\begin{equation}
+ zS(z)=4^{3/4+9r(z)/8},
+ \label{eq:mass-identities}
+\end{equation}
+whose exponent is at least $3/4$, whereas multiplying $S(-w)$ by
+$w=4^{k(w)+r(w)}$ yields $wS(-w)=4^{-3/4+9r(w)/8}$, whose exponent is
+strictly less than $3/8$.
+
+\subsection{Nonvanishing of the first-layer outputs}
+
+Fix a nonzero score parameter $m$ and a nonzero input $(a,b)$, and write
+$(y_1,y_2)=\T_m^S(a,b)$.  The first output is
+\begin{equation}
+ y_1=
+ \frac{S(ma^2)a+S(mab)b}
+      {S(ma^2)+S(mab)},
+ \label{eq:scalar-outputs}
+\end{equation}
+whose denominator is positive because $S$ is positive; exchanging $a$
+and $b$ exchanges the two outputs, so nonvanishing of the numerator of
+$y_1$ for every nonzero input also proves $y_2\ne0$.  If $ab\ge0$, the
+two terms $aS(ma^2)$ and $bS(mab)$ are both nonnegative or both
+nonpositive, and at least one is nonzero, so their sum cannot vanish.
+
+For $ab<0$, simultaneous negation of $a$ and $b$ preserves the scores
+$ma^2$ and $mab$ and negates the numerator of $y_1$, so it suffices to
+consider $a>0>b$.  When $m>0$, applying
+Equation~\eqref{eq:mass-dominance} to $z=ma^2>0$ and $w=-mab>0$ and
+canceling the positive factor $ma$ gives
+\begin{equation}
+ aS(ma^2)>(-b)S(mab),
+ \label{eq:positive-m-dominance}
+\end{equation}
+so the numerator $aS(ma^2)+bS(mab)$ of $y_1$ is positive.  When $m<0$, the positive
+score is $mab$ and the negative score is $ma^2$; applying
+Equation~\eqref{eq:mass-dominance} with $z=mab$ and $w=-ma^2$ and
+canceling the positive factor $-ma$ gives
+\begin{equation}
+ (-b)S(mab)>aS(ma^2),
+ \label{eq:negative-m-dominance}
+\end{equation}
+so the numerator $aS(ma^2)+bS(mab)$ of $y_1$ is negative.
+
+For every $m\ne0$ and every nonzero input $(a,b)$, the sign analysis and
+the exchange of the two input tokens establish
+\begin{equation}
+ y_1y_2\ne0,
+ \label{eq:first-layer-nonvanishing}
+\end{equation}
+so every second-layer score $m_2y_i y_j$ is nonzero for
+$i,j\in\{1,2\}$ when $m=m_1$ and $m_1m_2\ne0$.
+
+\subsection{The non-singleton fiber}
+
+Let $W=(m_1,m_2,l)$ with $m_1m_2l\ne0$, and set
+$W^\sharp=(m_1,4m_2,l)$.  Since both networks have first-layer score
+parameter $m_1$, they produce the same first-layer output $(y_1,y_2)$
+on each input $(a,b)$.  For every nonzero input,
+Equation~\eqref{eq:first-layer-nonvanishing} and $m_2\ne0$ make each
+second-layer score $m_2y_i y_j$ nonzero, so
+Equation~\eqref{eq:four-scaling-app} gives
+\begin{equation}
+ S(4m_2y_i y_j)=\frac14S(m_2y_i y_j)
+ \quad\text{for }i,j\in\{1,2\},
+ \label{eq:second-layer-scaling}
+\end{equation}
+so each row's unnormalized weights acquire the common factor $1/4$,
+which cancels under normalization and leaves both second-layer outputs
+unchanged.  At $(a,b)=(0,0)$, both first-layer tokens and both second-layer
+tokens equal zero, so both realizations vanish.  Applying the common
+final map $l$ therefore yields
+\begin{equation}
+ \phi_{W^\sharp}^S=\phi_W^S,
+ \label{eq:counterexample-fiber-equality}
+\end{equation}
+with $W^\sharp\ne W$ because $m_2\ne0$, proving that $\cF_S(W)$ is
+non-singleton.
+
+The set $\{m_1m_2l\ne0\}\subset\R^3$ is the complement of the three
+coordinate hyperplanes, and is therefore nonempty, Euclidean open, and
+dense.
+
+\section{Supporting results for Theorem~\ref{thm:positive}}
+\label{app:asymptotics}
+
+Constant inputs determine the final map through
+Equation~\eqref{eq:constant-recovery-proof}; recovery of each score matrix
+then requires a nonzero perturbation that survives the preceding layers and
+produces a displacement that the remaining layers cannot cancel.  We retain
+$S_\tau(z)=e^{z/\tau}$ with $\tau=1$, as fixed in the proof of
+Theorem~\ref{thm:positive}.  The four lemmas below establish noncollapse of
+the two token classes, the quadratic displacement between networks and cubic
+gap within each network, persistence through arbitrary remaining score
+matrices, and the density of directions on which the displacement survives
+the final map.
+
+For a query with one distinguished key and $n\ge1$ identical repeated keys,
+the normalized weight on the distinguished key depends on its score
+difference $z$ from a repeated key through
+\begin{equation}
+ \sigma_n(z)=\frac{e^z}{e^z+n},
+ \label{eq:weighted-sigmoid}
+\end{equation}
+which lies strictly between zero and one because every unnormalized weight
+is positive.  The factor $n$ records the repeated keys' total contribution
+to the normalizing denominator.
+
+\subsection{Two-class closure and noncollapse}
+
+\begin{mylemma}[Two-class closure and noncollapse]
+\label{lem:two-class-closure}
+Let $t\ge2$ and $n=t-1$, and let $M\in\mathbb R^{d\times d}$,
+$x,u\in\mathbb R^d$ with $u\ne0$, and $p,q\in\mathbb R$.  The input
+\begin{equation}
+ X(x,u;p,q)=(x+pu,x+qu,\ldots,x+qu),
+ \label{eq:two-class-input}
+\end{equation}
+has one distinguished token and $n$ repeated tokens.  Write $s=p-q$ for
+the signed difference of their scalar coefficients, and set $a=x^\top Mu$
+and $b=u^\top Mu$, so the distinguished query's score difference is
+$s(a+pb)$.  Its output coefficient is
+\begin{equation}
+ p^+=q+\sigma_n\!\bigl(s(a+pb)\bigr)s,
+ \label{eq:two-class-p-update}
+\end{equation}
+where the sigmoid factor is the normalized weight on the distinguished
+input.  Every repeated query instead has output coefficient
+\begin{equation}
+ q^+=q+\sigma_n\!\bigl(s(a+qb)\bigr)s,
+ \label{eq:two-class-q-update}
+\end{equation}
+because its query token is $x+qu$.  Consequently the layer action is
+\begin{equation}
+ \T_M^{S_\tau}X(x,u;p,q)=X(x,u;p^+,q^+),
+ \label{eq:two-class-exact-closure}
+\end{equation}
+with the base point, direction, and multiplicities preserved, and both
+output coefficients between $p$ and $q$.  If $s\ne0$ and $b\ne0$, then
+$p^+\ne q^+$, so the two output token values remain distinct.
+
+For any finite list $M_1,\ldots,M_k$ with $k\ge0$ and
+$u^\top M_j u\ne0$ for every $1\le j\le k$, the centered input
+$X(x,u;\varepsilon,-\varepsilon)$ therefore retains distinct token values
+through all $k$ layers whenever $\varepsilon\ne0$.  Both final scalar
+coefficients $p_\varepsilon$ and $q_\varepsilon$ lie in
+$[-|\varepsilon|,|\varepsilon|]$, so they tend to zero as
+$\varepsilon\to0$ while their difference remains nonzero for every
+$\varepsilon\ne0$.
+\end{mylemma}
+
+\begin{proof}
+For query $x+pu$, subtracting the score of a repeated key from the score of
+the distinguished key gives
+\begin{equation}
+ (x+pu)^\top M(x+pu)-(x+pu)^\top M(x+qu)=s(a+pb),
+ \label{eq:two-class-distinguished-score}
+\end{equation}
+which determines the ratio between their unnormalized weights.  Factoring
+$e^{(x+pu)^\top M(x+qu)}$ from the attention row gives distinguished-key
+weight $\sigma_n(s(a+pb))$; averaging the two token values with this weight
+gives Equation~\eqref{eq:two-class-p-update}.  For query $x+qu$, the score
+difference is $s(a+qb)$, so the same normalization gives
+Equation~\eqref{eq:two-class-q-update}.  All repeated queries are identical
+and hence produce the same output token, establishing
+Equation~\eqref{eq:two-class-exact-closure}.
+
+Subtracting the two coefficient updates gives
+\begin{equation}
+ p^+-q^+
+ =s\left[\sigma_n\!\bigl(s(a+pb)\bigr)
+          -\sigma_n\!\bigl(s(a+qb)\bigr)\right],
+ \label{eq:two-class-gap-update}
+\end{equation}
+so noncollapse follows from distinct sigmoid arguments whenever $s\ne0$.
+The arguments differ by
+\begin{equation}
+ s(a+pb)-s(a+qb)=s^2b,
+ \label{eq:two-class-logit-gap}
+\end{equation}
+which is nonzero when $s\ne0$ and $b\ne0$.  For $n>0$, equality
+$\sigma_n(z)=\sigma_n(z')$ implies $ne^z=ne^{z'}$ by cross multiplication,
+and hence $z=z'$.  Injectivity of $\sigma_n$ therefore makes the bracket in
+Equation~\eqref{eq:two-class-gap-update} nonzero, proving $p^+\ne q^+$.
+
+For the finite list, let $p_j(\varepsilon)$ and $q_j(\varepsilon)$ denote
+the distinguished and repeated coefficients after $j$ layers, starting
+with $p_0(\varepsilon)=\varepsilon$ and $q_0(\varepsilon)=-\varepsilon$.
+Applying the exact noncollapse result
+successively with $b=u^\top M_j u$ gives
+\begin{equation}
+ p_j(\varepsilon)-q_j(\varepsilon)\ne0
+ \quad\text{for }0\le j\le k\text{ and }\varepsilon\ne0,
+ \label{eq:two-class-prefix-noncollapse}
+\end{equation}
+so the two token values remain distinct at every layer.  Each coefficient update is a
+convex combination of the incoming coefficients because
+$0<\sigma_n(z)<1$.  The coefficient intervals are therefore nested inside
+$[-|\varepsilon|,|\varepsilon|]$, proving convergence of both coefficients
+to zero after every layer, including the empty list $k=0$.
+\end{proof}
+
+At step $r$ of Theorem~\ref{thm:positive}, equality $M_j=M_j'$ for every
+$j<r$ gives both networks the same coefficients $p_\varepsilon$ and
+$q_\varepsilon$ after applying the common prefix to
+$X(x,u;\varepsilon,-\varepsilon)$.  For $\varepsilon\ne0$ and a direction satisfying $Lu\ne0$ and
+$u^\top M_j u\ne0$ for every $j<r$, Lemma~\ref{lem:two-class-closure}
+ensures that their signed difference $s_\varepsilon=p_\varepsilon-q_\varepsilon$
+is nonzero and satisfies $|s_\varepsilon|\le2|\varepsilon|$, so it tends
+to zero while the token values remain distinct.  The parameter
+$\varepsilon$ specifies the original input perturbation, whereas
+$s_\varepsilon$ measures the gap on which the comparison of $M_r$ and
+$M_r'$ depends.
+
+\subsection{Quadratic signal and cubic gap}
+
+\begin{mylemma}[Quadratic signal and cubic gap]
+\label{lem:quadratic-signal}
+Let $t\ge2$ and $n=t-1$, and fix $x,u\in\mathbb R^d$ with $u\ne0$ and
+$N,N'\in\mathbb R^{d\times d}$.  Suppose $p_\varepsilon$ and
+$q_\varepsilon$ tend to zero, with signed gap
+$s_\varepsilon=p_\varepsilon-q_\varepsilon\ne0$ for every sufficiently
+small nonzero $\varepsilon$.  Apply $\T_N^{S_\tau}$ to
+$X(x,u;p_\varepsilon,q_\varepsilon)$ and denote its distinguished output by
+$x+y_1u$ and its repeated output by $x+y_2u$; use $y_1'$ and $y_2'$ for
+the corresponding coefficients after applying $\T_{N'}^{S_\tau}$ to the
+same input.  These coefficients depend on $\varepsilon$ and are uniquely
+determined because $u\ne0$.
+
+Write $a=x^\top Nu$ and $a'=x^\top N'u$ for the two matrices' scores
+between the base point and direction, and write $b=u^\top Nu$ and
+$b'=u^\top N'u$ for their quadratic scores on the direction.  All four
+output coefficients tend to zero.  The positive coefficient
+$\kappa_n=\sigma_n'(0)=n/(1+n)^2$ determines the displacement for each
+corresponding token class through
+\begin{equation}
+ y_i-y_i'=\kappa_n(a-a')s_\varepsilon^2+o(s_\varepsilon^2)
+ \quad\text{for }i\in\{1,2\},
+ \label{eq:quadratic-signal-limit}
+\end{equation}
+where both classes have the same quadratic coefficient, although their
+remainders can differ.  Within the output of the layer with matrix $N$, the
+class gap satisfies
+\begin{equation}
+ y_1-y_2=\kappa_n b\,s_\varepsilon^3+O(|s_\varepsilon|^4),
+ \label{eq:quantitative-cubic-gap}
+\end{equation}
+whereas the layer with matrix $N'$ satisfies
+\begin{equation}
+ y_1'-y_2'=\kappa_n b'\,s_\varepsilon^3+O(|s_\varepsilon|^4),
+ \label{eq:cubic-gap-primed-limit-proof}
+\end{equation}
+so both internal gaps are of smaller order than the cross-network
+quadratic term whenever $a\ne a'$, including when $b$ or $b'$ vanishes.
+\end{mylemma}
+
+\begin{proof}
+For $i\in\{1,2\}$, let $c_1=p_\varepsilon$ denote the distinguished input
+coefficient and $c_2=q_\varepsilon$ the repeated input coefficient.
+Lemma~\ref{lem:two-class-closure} gives
+\begin{equation}
+ y_i=q_\varepsilon+
+       \sigma_n\!\bigl(s_\varepsilon(a+c_i b)\bigr)s_\varepsilon,
+ \label{eq:quadratic-signal-unprimed-update}
+\end{equation}
+because the sigmoid factor is the normalized weight on the distinguished
+key for that class's query.  Replacing $(a,b)$ by $(a',b')$ gives the
+coefficient $y_i'$ for the layer with matrix $N'$.  Each output coefficient
+lies between $p_\varepsilon$ and $q_\varepsilon$, so all four tend to zero.
+
+The weighted sigmoid has derivative
+\begin{equation}
+ \sigma_n'(z)=\frac{ne^z}{(e^z+n)^2},
+ \label{eq:quadratic-signal-sigmoid-derivative}
+\end{equation}
+whose value at zero is $\kappa_n$.  Since $\sigma_n''$ is bounded on a
+neighborhood of zero, integrating $\sigma_n'$ between arguments $A$ and
+$B$ in that neighborhood gives
+\begin{equation}
+ \sigma_n(A)-\sigma_n(B)
+ =(A-B)\left[\kappa_n+O(|A|+|B|)\right],
+ \label{eq:quantitative-sigmoid-difference}
+\end{equation}
+with the same identity when $A=B$.  All arguments in the coefficient
+updates are $O(|s_\varepsilon|)$ because $p_\varepsilon$ and
+$q_\varepsilon$ tend to zero.  For corresponding classes, the argument
+difference is $s_\varepsilon[(a-a')+c_i(b-b')]$, so the outer factor
+$s_\varepsilon$ in Equation~\eqref{eq:quadratic-signal-unprimed-update}
+gives
+\begin{equation}
+ y_i-y_i'
+ =\kappa_n[(a-a')+c_i(b-b')]s_\varepsilon^2
+   +O(|s_\varepsilon|^3),
+ \label{eq:quantitative-class-displacement}
+\end{equation}
+whose class-dependent quadratic correction is $o(s_\varepsilon^2)$ since
+$c_i\to0$.  The cubic remainder is also $o(s_\varepsilon^2)$, proving
+Equation~\eqref{eq:quadratic-signal-limit}.
+
+For the two classes within the layer with matrix $N$, the sigmoid
+arguments instead differ by
+\begin{equation}
+ s_\varepsilon(a+p_\varepsilon b)
+ -s_\varepsilon(a+q_\varepsilon b)=s_\varepsilon^2b,
+ \label{eq:cubic-gap-argument-difference}
+\end{equation}
+so Equation~\eqref{eq:quantitative-sigmoid-difference} gives their sigmoid
+difference as $s_\varepsilon^2b[\kappa_n+O(|s_\varepsilon|)]$.
+Multiplication by the outer $s_\varepsilon$ in the exact gap update
+Equation~\eqref{eq:two-class-gap-update} proves
+Equation~\eqref{eq:quantitative-cubic-gap}, with its signed cubic term and
+fourth-order remainder.  Applying the same argument to $N'$ proves
+Equation~\eqref{eq:cubic-gap-primed-limit-proof}; if either quadratic score
+$b$ or $b'$ is zero, the corresponding exact internal gap is zero as well.
+\end{proof}
+
+For the centered probes in Theorem~\ref{thm:positive},
+Lemma~\ref{lem:two-class-closure} places both incoming coefficients in
+$[-|\varepsilon|,|\varepsilon|]$, so $c_i=O(|\varepsilon|)$ and
+$|s_\varepsilon|\le2|\varepsilon|$.  The class-dependent correction and
+cubic remainder in Equation~\eqref{eq:quantitative-class-displacement}
+therefore give the sharper comparison
+\begin{equation}
+ y_i-y_i'
+ =\kappa_n x^\top(N-N')u\,s_\varepsilon^2
+  +O(|\varepsilon|s_\varepsilon^2),
+ \label{eq:quantitative-quadratic-signal}
+\end{equation}
+whose remainder is dominated by the quadratic term whenever
+$x^\top(N-N')u\ne0$.  Both internal class gaps remain
+$O(|s_\varepsilon|^3)$, so their effect on later outputs is smaller than
+this quadratic displacement.
+
+\subsection{Persistence through unequal suffixes}
+
+\begin{mylemma}[Persistence through unequal suffixes]
+\label{lem:suffix-persistence}
+Let $t\ge2$ and $x,u\in\mathbb R^d$ with $u\ne0$.  Suppose the scalar
+coefficients $p_\varepsilon,q_\varepsilon,p'_\varepsilon,q'_\varepsilon$
+all tend to zero, and let $\delta_\varepsilon\to0$ be nonzero for every
+sufficiently small nonzero $\varepsilon$.  For a fixed $w\in\mathbb R$,
+suppose the distinguished coefficients satisfy
+$p_\varepsilon-p'_\varepsilon=w\delta_\varepsilon+o(|\delta_\varepsilon|)$
+and the repeated coefficients satisfy
+$q_\varepsilon-q'_\varepsilon=w\delta_\varepsilon+o(|\delta_\varepsilon|)$.
+Assume also that $p_\varepsilon-q_\varepsilon=o(|\delta_\varepsilon|)$
+within the unprimed network and
+$p'_\varepsilon-q'_\varepsilon=o(|\delta_\varepsilon|)$ within the primed
+network.
+
+Apply layers with arbitrary score matrices $M,M'\in\mathbb R^{d\times d}$ to
+$X(x,u;p_\varepsilon,q_\varepsilon)$ and
+$X(x,u;p'_\varepsilon,q'_\varepsilon)$, respectively.  Denote the
+distinguished and repeated output coefficients by $y_1$ and $y_2$ after
+$\T_M^{S_\tau}$, and by $y_1'$ and $y_2'$ after $\T_{M'}^{S_\tau}$.
+All four output coefficients tend to zero, and corresponding classes
+satisfy
+\begin{equation}
+ y_i-y_i'=w\delta_\varepsilon+o(|\delta_\varepsilon|)
+ \quad\text{for }i\in\{1,2\},
+ \label{eq:suffix-persistence-output-corresponding}
+\end{equation}
+with internal gap $y_1-y_2=o(|\delta_\varepsilon|)$ in the unprimed
+network and $y_1'-y_2'=o(|\delta_\varepsilon|)$ in the primed network.
+The same conclusions hold after any two finite lists of softmax layers
+of equal length, with independent score matrices in the two lists.
+\end{mylemma}
+
+\begin{proof}
+Every normalized layer takes convex combinations of its input token
+values.  By Lemma~\ref{lem:two-class-closure}, each network remains in the
+two-class family, and its coefficient intervals are nested under further
+layers.  Consequently, a scalar coefficient $z$ at any output position
+after any number of unprimed layers satisfies
+\begin{equation}
+ |z-q_\varepsilon|\le|p_\varepsilon-q_\varepsilon|,
+ \label{eq:quantitative-suffix-bounds}
+\end{equation}
+because its token stays between $x+p_\varepsilon u$ and
+$x+q_\varepsilon u$.  At the corresponding position in the primed
+network, the coefficient $z'$ satisfies
+\begin{equation}
+ |z'-q'_\varepsilon|\le|p'_\varepsilon-q'_\varepsilon|,
+ \label{eq:quantitative-suffix-primed-bound}
+\end{equation}
+by containment in that network's own token segment, independently of the
+score matrices used in either list.  Both bounds tend to zero, and their
+reference coefficients $q_\varepsilon$ and $q'_\varepsilon$ also tend to
+zero, proving convergence of every output coefficient.
+
+The triangle inequality gives
+\begin{equation}
+ \bigl|(z-z')-(q_\varepsilon-q'_\varepsilon)\bigr|
+ \le |p_\varepsilon-q_\varepsilon|
+     +|p'_\varepsilon-q'_\varepsilon|,
+ \label{eq:suffix-persistence-corresponding-proof}
+\end{equation}
+whose right-hand side is $o(|\delta_\varepsilon|)$ by the two internal-gap
+hypotheses.  Since the repeated coefficients differ by
+$w\delta_\varepsilon+o(|\delta_\varepsilon|)$, every corresponding pair
+of output coefficients retains the coefficient $w$ at scale
+$\delta_\varepsilon$, proving
+Equation~\eqref{eq:suffix-persistence-output-corresponding}.  Any two
+unprimed output coefficients differ by at most
+$|p_\varepsilon-q_\varepsilon|$, while any two primed output coefficients
+differ by at most $|p'_\varepsilon-q'_\varepsilon|$, so both internal gaps
+remain $o(|\delta_\varepsilon|)$.  These interval bounds apply after
+every finite number of layers and establish the asserted persistence
+without a relation between the two lists' score matrices.
+\end{proof}
+
+For the layers with matrices $N$ and $N'$ in
+Lemma~\ref{lem:quadratic-signal}, retain $y_1,y_2$ and $y_1',y_2'$ for
+their output coefficients, and let $z,z'$ be coefficients at corresponding
+token positions after the remaining layers.  Applying the interval bounds
+to the two internal gaps, each $O(|s_\varepsilon|^3)$, gives
+\begin{equation}
+ z-z'=y_2-y_2'+O(|s_\varepsilon|^3),
+ \label{eq:quantitative-suffix-persistence}
+\end{equation}
+because the remaining normalized layers keep the source tokens between
+$x+y_1u$ and $x+y_2u$, and keep the competing tokens between $x+y_1'u$ and
+$x+y_2'u$.  For centered probes,
+$|s_\varepsilon|\le2|\varepsilon|$ absorbs this change into the
+$O(|\varepsilon|s_\varepsilon^2)$ remainder in
+Equation~\eqref{eq:quantitative-quadratic-signal}, preserving its quadratic
+coefficient through the remaining layers.  A nonzero quadratic coefficient
+$\kappa_n x^\top(N-N')u$ therefore cannot be canceled by either network's
+smaller internal gap, even when all
+remaining source and competing score matrices differ.
+
+
+\subsection{Polynomial nonvanishing}
+
+\begin{mylemma}[Polynomial nonvanishing]
+\label{lem:usable-directions}
+Let $m,d,d_{\mathrm{out}}\ge1$ and $k\ge0$ be integers.  For every
+nonzero real polynomial $P$ on $\mathbb R^m$, the set
+\begin{equation}
+ \{z\in\mathbb R^m:P(z)\ne0\}
+ \label{eq:polynomial-nonvanishing-set}
+\end{equation}
+is nonempty, Euclidean open, and dense.  In particular, if
+$L\in\mathbb R^{d_{\mathrm{out}}\times d}$ is nonzero and
+$M_1,\ldots,M_k\in\mathbb R^{d\times d}$ satisfy
+$M_j^\top\ne-M_j$ for every $1\le j\le k$, then
+\begin{equation}
+ P(u)=\|Lu\|^2\prod_{j=1}^k u^\top M_j u
+ \label{eq:usable-directions-polynomial}
+\end{equation}
+is a nonzero polynomial whose nonvanishing set consists precisely of the
+directions satisfying $Lu\ne0$ and $u^\top M_j u\ne0$ for every
+$1\le j\le k$.  For $k=0$, the product is one, so the conclusion concerns
+only the condition $Lu\ne0$.
+\end{mylemma}
+\begin{proof}
+Continuity of $P$ makes its nonvanishing set open; density follows once its
+zero set is shown to have empty interior.  We prove the latter assertion by
+induction on $m$.  A nonzero univariate polynomial has finitely many roots
+and therefore cannot vanish on an open interval.  For $m>1$, write
+$z=(v,s)\in\mathbb R^{m-1}\times\mathbb R$ and expand in the final
+coordinate as
+\begin{equation}
+ P(v,s)=\sum_{j=0}^r a_j(v)s^j,
+ \label{eq:polynomial-coordinate-expansion}
+\end{equation}
+where the coefficient polynomials $a_j$ include at least one nonzero
+polynomial because $P$ is nonzero.  If $P$ vanished on a nonempty open
+set, it would vanish on a product $U\times I$ with $U$ nonempty and open
+in $\mathbb R^{m-1}$ and $I$ a nonempty open interval.  For each $v\in U$,
+the polynomial $s\mapsto P(v,s)$ would then vanish identically, forcing
+$a_j(v)=0$ for every $j$.  A nonzero coefficient polynomial would therefore
+vanish on $U$, contradicting the induction hypothesis.  Thus the zero set
+has empty interior, and its complement is dense and nonempty.
+
+For the specialization in Equation~\eqref{eq:usable-directions-polynomial},
+the factor $\|Lu\|^2$ is a nonzero polynomial because $L\ne0$.  Each
+quadratic factor satisfies
+\begin{equation}
+ u^\top M_j u
+ =u^\top\left(\frac{M_j+M_j^\top}{2}\right)u,
+ \label{eq:quadratic-symmetric-part}
+\end{equation}
+so it depends only on the symmetric part of $M_j$.  If this quadratic
+form vanished for every $u$, evaluation at each coordinate vector would
+make every diagonal entry of the symmetric part zero, while evaluation at
+sums of two coordinate vectors would make every off-diagonal entry zero.
+Consequently $M_j+M_j^\top=0$, contrary to the hypothesis on $M_j$.
+All factors of $P$ are therefore nonzero polynomials, and the absence of
+zero divisors in the real polynomial ring makes their product nonzero.
+Since $\|Lu\|^2$ vanishes exactly when $Lu=0$, nonvanishing of $P$ is
+equivalent to simultaneous nonvanishing of $Lu$ and every $u^\top M_j u$.
+Applying the first part of the lemma proves the asserted openness and
+density, including $k=0$, when only $\|Lu\|^2$ remains.
+\end{proof}
+
+For recovery of $M_r$ in Theorem~\ref{thm:positive}, apply
+Lemma~\ref{lem:usable-directions} to $L$ and the prefix
+$M_1,\ldots,M_{r-1}$.  The condition $Lu\ne0$ preserves nonzero output
+displacements along $u$, while $u^\top M_j u\ne0$ for $j<r$ prevents
+collapse through the common prefix.  On this dense set of directions,
+Equation~\eqref{eq:directional-bilinear-proof} gives
+$x^\top(M_r-M_r')u=0$ for every $x\in\R^d$.
+For each fixed $x$, continuity in $u$ extends the identity to every
+direction, and independent variation of $x$ and $u$ determines every
+entry of $M_r-M_r'$, including its skew-symmetric component.
+
+\subsection{Boundary cases}
+\label{app:boundaries}
+
+If $t=1$, row normalization gives a single weight equal to one, so each
+attention layer fixes its input token independently of the score matrix.
+If $L=0$, every score list realizes the zero function.  Thus $t\ge2$ and
+$L\ne0$ are necessary for the complete score recovery asserted in
+Theorem~\ref{thm:positive}.
+
+At two tokens, a skew-symmetric score matrix produces an additional
+obstruction.  For $M^\top=-M$ and input $(x,y)$, write $a=x^\top My$;
+the self-scores vanish and the reversed cross-score is $-a$.
+Both output tokens coincide because the second satisfies
+\begin{equation}
+ \frac{e^{-a}x+y}{e^{-a}+1}
+ =\frac{x+e^a y}{1+e^a},
+ \label{eq:skew-two-token-collapse}
+\end{equation}
+whose right-hand side is the first output token, so the output sequence is
+constant.
+Every subsequent normalized layer fixes this constant sequence, regardless
+of its score matrix.  In particular, taking
+\begin{equation}
+ M_1=\begin{pmatrix}0&1\\-1&0\end{pmatrix}
+ \label{eq:full-rank-skew-example}
+\end{equation}
+and the final map $L=I_2$ gives distinct depth-two parameters
+$W=(M_1,I_2,I_2)$ and $W'=(M_1,2I_2,I_2)$ with equal complete
+realizations.  All score matrices in this example have full rank, so full
+rank does not prevent the collapse.
+
+The proper-prefix non-skew condition in Theorem~\ref{thm:positive}
+ensures noncollapse on a dense set of probe directions; the two-token
+example does not establish a converse classification of identifiable
+parameters.  Recovery of $M_r$ requires noncollapse only through
+$M_1,\ldots,M_{r-1}$, so the terminal matrix $M_\ell$ is unrestricted.
+Likewise, $L\ne0$ supplies a dense set of directions satisfying $Lu\ne0$
+without requiring full rank.  No nondegeneracy condition is imposed on
+unrecovered competing score matrices, because the suffix bounds in
+Lemma~\ref{lem:suffix-persistence} use only convexity.
+
+
+\section{Formal verification and computational provenance}
+\label{app:formal-certification}
+
+\subsection{AI-assisted development}
+
+Codex assists Lean proof search, theorem proving, debugging, inspection of
+formal code, repository organization, and manuscript drafting. The disclosure
+in Section~\ref{sec:ai-disclosure} records the human and tool contributions.
+James Amarel is the formalizer and maintainer. 
+\subsection{Statements and correspondence}
+
+DeepLean uses the repository's root Lake project. Supporting
+mathematics is in \path{DeepLean/Attention/}, with public imports in
+\path{DeepLean.lean}.  Its principal version pins are
+\begin{lstlisting}
+Lean 4.35.0-rc2
+Mathlib 4.35.0-rc2
+  commit 065356127b1dc0016f66b7283ce0ce2c4055aa55
+CPython 3.14.5
+\end{lstlisting}
+The root \path{lean-toolchain} and \path{lake-manifest.json} fix the Lean
+and library revisions; \path{scripts/check-local-proof.py} selects the
+Python version and records the checker identities used for local replay.
+
+One \path{Challenge.lean}/\path{Solution.lean} pair represents both numbered
+theorems through three declarations selected by \path{comparator.json}.
+Within this pair, the challenge imports only Mathlib and contains explicit
+mathematical definitions and the three statement holes.  Its definitions mirror
+\path{DeepLean/Attention/Definitions.lean}, without importing project proof
+modules.  The solution imports the completed library and proves declarations
+with the names and types specified in the challenge.  Separate exports allow
+Comparator to compare their statements without importing the challenge holes
+into the solution.
+
+For Theorem~\ref{thm:negative}, the declaration
+\begin{lstlisting}
+DeepLean.Attention.normalizer_counterexample
+\end{lstlisting}
+produces a scalar normalizer, proves its positivity,
+normalization at zero, injectivity, Borel measurability, and discontinuity at
+zero, establishes the
+nonempty Euclidean-open dense locus $m_1m_2l\ne0$, and supplies at every point
+the explicit distinct partner $(m_1,4m_2,l)$ with identical complete
+realization. Its proof packages the explicit normalizer using the
+admissibility, discontinuity, locus, and partner lemmas. The supporting endpoint
+\begin{lstlisting}
+Neuroalgebraic.Submission.Theorem1.theorem1_counterexample
+\end{lstlisting}
+states the existential counterexample. Discontinuity at zero for the explicit witness is also included in the
+selected declaration.
+
+For the pointwise clause of Theorem~\ref{thm:positive}, the declaration
+\begin{lstlisting}
+DeepLean.Attention.softmax_identifiability
+\end{lstlisting}
+requires a nonzero source final map, a non-skew proper source
+score prefix, equal positive depths, and equality of the complete realization
+functions at positive temperature with $t\ge2$.  No nondegeneracy condition
+is imposed on the terminal source score or the competing parameter, and the
+conclusion identifies the complete virtual parameter points.  Natural-number
+dimensions are allowed formally; the
+nonzero final map excludes zero-dimensional cases.  Its supporting endpoint
+\begin{lstlisting}
+Neuroalgebraic.Submission.Theorem2.theorem2_softmax_identifiability
+\end{lstlisting}
+has the identical pointwise statement.
+
+For the explicit generic clause, the declaration
+\begin{lstlisting}
+DeepLean.Attention.softmax_generic_identifiability
+\end{lstlisting}
+states nonemptiness, Euclidean openness, and density of the coordinate locus
+in Equation~\eqref{eq:coordinate-locus},
+its containment in the source set in Equation~\eqref{eq:source-regular},
+and singleton complete fibers throughout it.  A fixed-depth parameter with
+tail length $k$ has depth $k+1$; at depth one the proper-prefix condition is
+empty.  Existence of the coordinate indices witnesses positive input and output
+dimensions, while the fiber ranges over all parameters of the fixed depth.
+The generic wrapper combines the genericity and fiber proofs with
+\path{NormalizedDeepAttention.properCoordinateRegular_properDeep}, making
+the manuscript's containment clause explicit. Its supporting endpoint
+\begin{lstlisting}
+Neuroalgebraic.Submission.Theorem2.theorem2_openDense_coordinate_fibers
+\end{lstlisting}
+provides the openness, density, and singleton-fiber assertions.
+
+The architecture reduction is supplied by
+\begin{lstlisting}
+NormalizedDeepAttention.deepNormalizedAttention_eq_virtual
+\end{lstlisting}
+which identifies the primitive and virtual realizations.
+
+\noindent\begin{minipage}{\linewidth}
+Log-affine reparametrization and boundary analysis are supplied by
+\begin{lstlisting}
+Neuroalgebraic.Submission.DeepAttentionVirtual.
+  logAffine_properPrefix_pointwise_identifiable
+  logAffine_properCoordinate_fullFiber
+  properCoordinateLocus_nonempty_open_dense
+  skewBoundary_nontrivialFiber
+\end{lstlisting}
+which remain supporting library results; Palomar comparison selects only
+the three \path{DeepLean.Attention} declarations corresponding to the
+numbered theorems.
+\end{minipage}
+\par
+
+\subsection{Manuscript-facing Lean declarations}
+
+Each theorem listing is imported directly from \path{Solution.lean}, so the
+manuscript reproduces the source declaration without maintaining a separate copy.
+
+\noindent\begin{minipage}{\linewidth}
+\textbf{Theorem~\ref{thm:negative}.}\par
+\smallskip
+\lstinputlisting[
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  linerange={APPENDIXTHEOREMONEBEGIN-APPENDIXTHEOREMONEEND},
+  rangeprefix={--\ },
+  includerangemarker=false
+]{../../Solution.lean}
+\end{minipage}
+\par\medskip
+
+\noindent\begin{minipage}{\linewidth}
+\textbf{Theorem~\ref{thm:positive}: pointwise identifiability.}\par
+\smallskip
+\lstinputlisting[
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  linerange={APPENDIXTHEOREMTWOPOINTWISEBEGIN-APPENDIXTHEOREMTWOPOINTWISEEND},
+  rangeprefix={--\ },
+  includerangemarker=false
+]{../../Solution.lean}
+\end{minipage}
+\par\medskip
+
+\newpage
+\noindent\begin{minipage}{\linewidth}
+\textbf{Theorem~\ref{thm:positive}: open-dense singleton fibers.}\par
+\smallskip
+\lstinputlisting[
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  linerange={APPENDIXTHEOREMTWOGENERICBEGIN-APPENDIXTHEOREMTWOGENERICEND},
+  rangeprefix={--\ },
+  includerangemarker=false
+]{../../Solution.lean}
+\end{minipage}
+\par\medskip
+
+\subsection{Reproduction and evidence boundary}
+
+With the pinned Lean toolchain installed through \path{elan} and the root
+manifest's dependencies prepared, the complete local check is invoked from
+the repository root by
+\begin{lstlisting}
+python3 scripts/check-local-proof.py
+\end{lstlisting}
+which creates a fresh evidence directory under \path{.cache/local-proof/}
+and records source hashes, tool identities, commands, process exits, and a
+final \path{report.json}.  The check validates the mirrored definitions and
+declaration signatures, builds the project, elaborates Challenge and Solution
+separately, scans completed sources for placeholders, and audits the transitive
+axiom dependencies of all three selected declarations.  \path{Challenge.lean}
+specifies the theorem statements with proof placeholders, while
+\path{Solution.lean} supplies proofs containing no placeholders, directly or
+through their dependencies.  The permitted axioms are exactly
+\path{propext}, \path{Quot.sound}, and \path{Classical.choice}.
+
+For proof replay, the script exports the selected declarations and required
+primitive targets with \path{leanexport}.  Comparator compares the Challenge
+and Solution statements and checks the axiom policy under
+\path{comparator.json}, invoking NanoDa and Lean's checker; \path{con-ron},
+an external Lean proof checker implemented in Rust, separately checks the
+Solution export in verified mode.  Acceptance requires
+results identifying every selected declaration and every required checker,
+in addition to successful process exits.  
+
+Each run records source checksums, tool identities, commands, and results in
+its evidence directory under \path{.cache/local-proof/}.
+
+\end{document}
