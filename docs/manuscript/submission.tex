@@ -133,7 +133,9 @@ whole input space.  \citet{henry2025} proved that this
 fiber is a singleton at one layer for tokens $t\ge2$ when the value map is nonzero,
 conjectured generic singleton fibers at arbitrary depth, and supported the
 conjecture by a sampled-Jacobian calculation at depth two.  We
-resolve that conjecture in the virtual parametrization in which it was posed.
+resolve that conjecture in the virtual parametrization in which it was posed:
+compositions of single-head attention layers without residual connections,
+layer normalization, feed-forward modules, biases, or positional encodings.
 
 Composing normalized attention layers makes the deep problem different from
 the one-layer theorem: each row retains only ratios of scalar weights, and a
@@ -370,10 +372,11 @@ normalized weights.
 \begin{myremark}
 The normalizer in Theorem~\ref{thm:negative} satisfies all of the assumptions
 on $S$ in Conjecture~3.10 of \citet[Section~3.4]{henry2025}: it is positive,
-injective, and satisfies $S(0)=1$.  It is also Borel measurable.  The construction
-is nevertheless discontinuous, and we leave open whether continuity together
-with the hypotheses of \citet{henry2025} is sufficient for generic
-identifiability.
+injective, and satisfies $S(0)=1$.  It is also Borel measurable.  The normalizer
+is discontinuous at zero and unbounded near zero, so the counterexample does
+not establish nonidentifiability for smooth normalizers; we leave open whether
+continuity together with the hypotheses of \citet{henry2025} is sufficient
+for generic identifiability.
 \end{myremark}
 
 \begin{theorem}[Identifiability for exponential softmax]

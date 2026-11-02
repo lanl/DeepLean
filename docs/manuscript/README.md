@@ -2,7 +2,7 @@
 
 [submission.pdf](submission.pdf) is the final 23-page manuscript: main text 1-9,
 references 10-11, and appendices 12-23. Its SHA256 is
-`3077b598b90d2361deae121abae47ba34f1802e9ea74b9442b660fdaf2db74ee`.
+`53a1ab81e80d1a31d13dbfe93719624d226ffbcebdcb622c097577f7920a6787`.
 [submission.tex](submission.tex) reads the three theorem declarations directly
 from [Solution.lean](../../Solution.lean).
 
