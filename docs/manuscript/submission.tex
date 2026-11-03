@@ -646,9 +646,8 @@ interface exposes the three declarations described in
 Appendix~\ref{app:formal-certification}. Local compilation, statement comparison,
 transitive axiom audits, and independent proof replay have distinct roles;
 none establishes the correspondence between formal statements and mathematical
-prose without a separate semantic review. The reproducible commands are
-documented in the repository's \path{README.md}; each run records its results
-under \path{.cache/local-proof/}.
+prose without a separate semantic review. The reproducible commands and their
+current results are documented in \path{docs/verification/README.md}.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -678,6 +677,16 @@ composition.  In the softmax case considered here, the latter rigidity
 separates the remaining raw query-key and value-coordinate redundancies from
 the virtual identifiability of the deep normalized model.
 \clearpage
+\section{Acknowledgments} 
+Research presented in this report was
+supported by the Laboratory Directed Research and Development program of Los Alamos National
+Laboratory under project number(s) 20250637DI, 20250638DI, and 20250639DI. This research
+used resources provided by the Los Alamos National Laboratory Institutional Computing
+Program, which is supported by the U.S. Department of Energy National Nuclear Security
+Administration under Contract No. 89233218CNA000001. It is published under  LA-UR-26-27666.
+
+JA thanks Michael Dixon for helpful discussions on the use of Lean 4 and supporting software tools.
+
 \bibliography{pmlr-sample}
 
 \clearpage
@@ -1481,7 +1490,7 @@ Solution export in verified mode.  Acceptance requires
 results identifying every selected declaration and every required checker,
 in addition to successful process exits.  
 
-Each run records source checksums, tool identities, commands, and results in
-its evidence directory under \path{.cache/local-proof/}.
+The retained source checksums, tool versions, commands, and results are indexed
+in \path{docs/verification/README.md}.  
 
 \end{document}
